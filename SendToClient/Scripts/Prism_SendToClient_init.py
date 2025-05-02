@@ -39,6 +39,3 @@ class Prism_SendToClient(Prism_SendToClient_Variables, Prism_SendToClient_Functi
     def __init__(self, core):
         Prism_SendToClient_Variables.__init__(self, core, self)
         Prism_SendToClient_Functions.__init__(self, core, self)
-
-        self.core.callbacks.registerCallback('onProjectBrowserShow',
-                                     self.onProjectBrowserShow, plugin=self)
