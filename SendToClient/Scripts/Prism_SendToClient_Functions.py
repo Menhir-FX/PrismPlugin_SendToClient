@@ -32,7 +32,8 @@
 ####################################################
 # Plugin author: Elise Vidal
 # Contact: evidal@artfx.fr
-# Beta Testeur: Simon 'ca marche pas' Tarsiguel
+
+
 
 try:
     from PySide2.QtCore import *
@@ -47,11 +48,11 @@ from PrismUtils.Decorators import err_catcher_plugin as err_catcher
 
 import os
 import shutil
-import datetime
 import re
 from SetName import SetName
 import subprocess
 
+from env import Config
 
 class Prism_SendToClient_Functions(object):
     """
@@ -178,7 +179,9 @@ class Prism_SendToClient_Functions(object):
             data = productbrowser.getCurrentVersion()
             if data:
                 self.create_buttons(menu, data)
-
+    # END CALLBACKS
+                
+    
     def create_buttons(self, menu, data):
         """
         Create a menu "Send to client" and two actions in the contextual menu.
@@ -192,57 +195,17 @@ class Prism_SendToClient_Functions(object):
             None
         """
 
-        send_menu = QMenu("Send to client")
+        send_menu = QMenu(Config.MENU_NAME)
 
-        send_act = QAction("Send to client", menu)
-        send_act.triggered.connect(lambda : self.copyToClient(data))
+        send_act = QAction(Config.ACTION_NAME, menu)
+        send_act.triggered.connect(lambda : self.copyAction(data))
         send_menu.addAction(send_act)
 
-        quick_send_act = QAction("Quick Send to client", menu)
-        quick_send_act.triggered.connect(lambda : self.quick_copyToClient(data))
+        quick_send_act = QAction(Config.QUICK_ACTION_NAME, menu)
+        quick_send_act.triggered.connect(lambda : self.quick_copyAction(data))
         send_menu.addAction(quick_send_act)
 
         menu.addMenu(send_menu)
-
-
-    @err_catcher(name=__name__)
-    def get_placeholder_export_name(self, data):
-        """
-        Converts media information to a default name.
-
-        Args:
-            data (dict) : media informations.
-
-        Returns: 
-            str : defaut name
-        """
-        try:            
-            asset_name = ''
-            # for media
-            if "identifier" in data.keys():
-                return data.get('identifier')
-
-            # for product
-            if "product" in data.keys():
-                return data.get('product')
-            
-            # for scene files
-            else:
-                if data.get('type') == 'shot':
-                    asset_name = data.get('shot')
-                elif data.get('type') == 'asset':
-                    asset_name = data.get('asset_path')
-
-            for k, v in data.items():
-                self.core.popup(f"{k} : {v}")
-                
-            task = data.get('task')
-            
-            formatted_toClient_media_name = asset_name + '_' + task
-
-            return formatted_toClient_media_name
-        except Exception as e:
-            self.core.popup(e)
 
     @err_catcher(name=__name__)
     def open_explorer(self, path):
@@ -270,24 +233,9 @@ class Prism_SendToClient_Functions(object):
         Returns:
             str : folder path
         """
+        project_path = self.core.projectPath
 
-        project_path = data['project_path']
-
-        return f"{project_path}/08_ToClient".replace('\\', '/')
-
-    @err_catcher(name=__name__)
-    def get_toClient_media_folder(self):
-        """
-        Create a default folder name using the current date.
-
-        Returns:
-            str: A string formatted as YYMMDD_ to use as a folder name.
-        """
-
-        date = datetime.datetime.now()
-        date = date.strftime('%y%m%d')
-        toClient_media_folder = date + '_'
-        return toClient_media_folder
+        return f"{project_path}{Config.EXPORT_FOLDER}".replace('\\', '/')
 
     @err_catcher(name=__name__)
     def copy_files(self, src, dst):
@@ -351,15 +299,21 @@ class Prism_SendToClient_Functions(object):
         Returns:
             None
         """
+
+        # source is a file
         if os.path.isfile(src):
             ext = os.path.splitext(src)[1]
             new_name = f"{os.path.dirname(src)}/{name}{ext}"
             
             os.replace(src, new_name)
+
+        # source is a directory
         elif os.path.isdir(src):
             folders = src.split('\\')[:-1]
             folders.append(name)
             target = '\\'.join(folders)
+
+            # merge folder is the target already exists
             if os.path.exists(target):
                 self.merge_folders(src, target)
             else:
@@ -377,16 +331,19 @@ class Prism_SendToClient_Functions(object):
             list[str]: List of subdirectory names found in `search_dir`, reversed in order.
         """
             
-        existing_folders = []
-        for dir in os.listdir(search_dir):
-            if os.path.isdir(os.path.join(search_dir, dir)):
-                existing_folders.append(dir)
-        return existing_folders[::-1]
+        if os.path.exists(search_dir):
+            existing_folders = []
+            for dir in os.listdir(search_dir):
+                if os.path.isdir(os.path.join(search_dir, dir)):
+                    existing_folders.append(dir)
+            return existing_folders[::-1]
+        else:
+            return []
     
     @err_catcher(name=__name__)
-    def quick_copyToClient(self, data):
+    def quick_copyAction(self, data):
         """
-        Copy a media file or folder to the "toClient" directory and rename it with default settings.
+        Copy a media file or folder to the destination directory and rename it with default settings.
 
         Args:
             data (dict): Dictionary containing media information.
@@ -407,29 +364,30 @@ class Prism_SendToClient_Functions(object):
             self.core.popup("Can't retrieve export path",
                             severity="error")
         
-        placeholder_export_name = self.get_placeholder_export_name(data)
+        placeholder_export_name = Config.get_placeholder_export_name(data)
         export_folder = self.get_export_folder(data)
-        placeholder_media_folder = self.get_toClient_media_folder()
+        placeholder_dest_folder = Config.get_default_destination_folder_name()
 
-        # RETRIEVE AND FORMAT USER INPUT
-        toClient_media_folder = placeholder_export_name
-        toClient_media_folder = re.sub(
-            r"[^a-zA-Z0-9]", "_", toClient_media_folder
+        destination_media_folder = placeholder_export_name
+        destination_media_folder = re.sub(
+            r"[^a-zA-Z0-9]", "_", destination_media_folder
             )
-        toClient_media_path = os.path.join(
-            export_folder, placeholder_media_folder
+        destination_media_path = os.path.join(
+            export_folder, placeholder_dest_folder
             )
-        toClient_media_name = placeholder_media_folder
-        toClient_media_name = re.sub(r"[^a-zA-Z0-9]", "_", toClient_media_name)
+        destination_media_name = placeholder_dest_folder
+        destination_media_name = re.sub(r"[^a-zA-Z0-9]", "_", destination_media_name)
 
-        copied = self.copy_files(media_folder, toClient_media_path)
+        copied = self.copy_files(media_folder, destination_media_path)
 
         self.rename_files(copied, placeholder_export_name)
 
+        self.core.popup(f"{destination_media_name} exported!")
+
     @err_catcher(name=__name__)
-    def copyToClient(self, data):
+    def copyAction(self, data):
         """
-        Copy a media file or folder to the "toClient" directory and rename it.
+        Copy a media file or folder to the target directory and rename it.
         Ask the user about settings.
 
         Args:
@@ -451,16 +409,17 @@ class Prism_SendToClient_Functions(object):
             self.core.popup("Can't retrieve export path",
                             severity="error")
 
-        placeholder_export_name = self.get_placeholder_export_name(data)
+        placeholder_export_name = Config.get_placeholder_export_name(data)
 
         export_folder = self.get_export_folder(data)
 
-        # GET MEDIA NAME FROM USER INPUT
+        # GET DESTINATION NAME FROM USER INPUT
         dlg = SetName()
         dlg.e_mediaName.setText(placeholder_export_name)
         existing_folders = self.get_existing_folders(export_folder)
-        placeholder_media_folder = self.get_toClient_media_folder()
-        existing_folders.insert(0, placeholder_media_folder)
+        placeholder_dest_folder = Config.get_default_destination_folder_name()
+        if placeholder_dest_folder not in existing_folders:
+            existing_folders.insert(0, placeholder_dest_folder)
         dlg.c_mediaFolders.addItems(existing_folders)
         dlg.b_explorer.clicked.connect(
             lambda: self.open_explorer(export_folder)
@@ -470,19 +429,21 @@ class Prism_SendToClient_Functions(object):
             return
 
         # RETRIEVE AND FORMAT USER INPUT
-        toClient_media_folder = dlg.c_mediaFolders.currentText()
-        toClient_media_folder = re.sub(
-            r"[^a-zA-Z0-9]", "_", toClient_media_folder
+        destination_media_folder = dlg.c_mediaFolders.currentText()
+        destination_media_folder = re.sub(
+            r"[^a-zA-Z0-9]", "_", destination_media_folder
             )
-        toClient_media_path = os.path.join(
-            export_folder, toClient_media_folder
+        destination_media_path = os.path.join(
+            export_folder, destination_media_folder
             )
-        toClient_media_name = dlg.e_mediaName.text()
-        toClient_media_name = re.sub(r"[^a-zA-Z0-9]", "_", toClient_media_name)
+        destination_media_name = dlg.e_mediaName.text()
+        destination_media_name = re.sub(r"[^a-zA-Z0-9]", "_", destination_media_name)
 
-        copied = self.copy_files(export_path, toClient_media_path)
+        copied = self.copy_files(export_path, destination_media_path)
 
-        self.rename_files(copied, toClient_media_name)
+        self.rename_files(copied, destination_media_name)
+
+        self.core.popup(f"{destination_media_name} exported!")
 
     def merge_folders(self, src, dst):
         """
