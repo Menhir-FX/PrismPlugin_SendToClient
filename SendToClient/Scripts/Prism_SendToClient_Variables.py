@@ -33,7 +33,7 @@
 
 class Prism_SendToClient_Variables(object):
     def __init__(self, core, plugin):
-        self.version = "v2.0.0.beta2"
+        self.version = "v2.0.15"
         self.pluginName = "SendToClient"
         self.pluginType = "Custom"
         self.platforms = ["Windows", "Linux", "Darwin"]

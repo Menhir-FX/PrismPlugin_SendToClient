@@ -54,12 +54,25 @@ import subprocess
 
 
 class Prism_SendToClient_Functions(object):
+    """
+	Prism plugin that adds a Send to client menu to certain contextual menus.
+    Send to client must send the selected file or folder to another folder.
+	"""
+
     def __init__(self, core, plugin):
+        """
+        Initialize the plugin.
+
+        Attributes:
+        core (PrismCore): Prism core.
+        plugin (?): Prism plugin.
+        """
         self.core = core
         self.plugin = plugin
 
         # Only for Prism Standalone
         if self.core.appPlugin.pluginName == "Standalone":
+            # register callbacks
             self.core.registerCallback(
                 "openPBFileContextMenu", self.openPBFileContextMenu, plugin=self.plugin
             )
@@ -78,36 +91,109 @@ class Prism_SendToClient_Functions(object):
     def isActive(self):
         return True
     
+    # CALLBACKS
+    @err_catcher(name=__name__)
     def openPBFileContextMenu(self, origin, menu, path):
-        
+        """
+        Handle context menu request on a scene file.
+        Extracts Prism data from the given file path. If data is found,
+        adds a "send to client" action to the context menu.
+
+        Args:
+            origin (ProjectScripts.SceneBrowser.SceneBrowser): Instance triggering the context menu (scene browser).
+            menu (QtWidgets.QMenu): Context menu being constructed.
+            path (str): Path to a scene file, or None.
+
+        Returns:
+        None
+        """
+
         # if click on a scenefile
         if os.path.isfile(path):
-
             # get file data
             data = self.core.getScenefileData(path, getEntityFromPath=True)
-
-            # create button build layout and add it to the build menu
+            # create buttons
             self.create_buttons(menu, data)
 
     def mediaPlayerContextMenuRequested(self, mediaplayer, menu):
+        """
+        Handle context menu request on the media player.
+        Extracts Prism data from the currently loaded media,
+        adds a "send to client" action to the context menu.
+
+        Args:
+            mediaplayer (ProjectScripts.MediaBrowser.MediaPlayer): Prism scene browser.
+            menu (QtWidgets.QMenu): Contextual menu about to be opened.
+
+        Returns:
+            None
+        """
+
         data = mediaplayer.origin.getCurrentVersion()
         self.create_buttons(menu, data)
 
     def openPBListContextMenu(self, mediabrowser, menu, lw, item, path):
+        """
+        Handle context menu request on a media.
+        Extracts Prism data from the given media version.
+        If click conditions are True, adds a "send to client" action to the context menu. 
+
+        Args:
+            mediabrowser (ProjectScripts.MediaBrowser.MediaBrowser): Instance triggering the context menu (media browser).
+            menu (QtWidgets.QMenu): Context menu being constructed.
+            lw (QtWidgets.QListWidget) : Columne clicked.
+            item (QtWidgets.QWidget) : Item clicked or None.
+            path (str) : Path to a media folder, or None.
+
+
+        Returns:
+            None
+        """
+
+        # If click in the version column
         if lw == mediabrowser.lw_version:
             data = mediabrowser.getCurrentVersion()
             if data:
                 self.create_buttons(menu, data)
 
     def productSelectorContextMenuRequested(self, productbrowser, lw, pos, menu):
+        """
+        Handle context menu request on a product.
+        Extracts Prism data from the given product version.
+        If click conditions are True, adds a "send to client" action to the context menu. 
+
+        Args:
+            productbrowser (ProjectScripts.ProductBrowser.ProductBrowser): Instance triggering the context menu (media browser).
+            lw (QtWidgets.QListWidget) : Columne clicked.
+            pos (tuple(float, float)) : Position (x, y) of the clic.
+            menu (QtWidgets.QMenu): Context menu being constructed.
+
+
+        Returns:
+            None
+        """
+
+        # If click in the version column
         if lw == productbrowser.tw_versions:
             data = productbrowser.getCurrentVersion()
             if data:
                 self.create_buttons(menu, data)
 
     def create_buttons(self, menu, data):
+        """
+        Create a menu "Send to client" and two actions in the contextual menu.
+
+        Args:
+            menu (QtWidgets.QMenu): Context menu being constructed.
+            data (dict): file/folder entity informations.
+
+
+        Returns:
+            None
+        """
 
         send_menu = QMenu("Send to client")
+
         send_act = QAction("Send to client", menu)
         send_act.triggered.connect(lambda : self.copyToClient(data))
         send_menu.addAction(send_act)
@@ -120,7 +206,16 @@ class Prism_SendToClient_Functions(object):
 
 
     @err_catcher(name=__name__)
-    def format_toClient_media_name(self, data):
+    def get_placeholder_export_name(self, data):
+        """
+        Converts media information to a default name.
+
+        Args:
+            data (dict) : media informations.
+
+        Returns: 
+            str : defaut name
+        """
         try:            
             asset_name = ''
             # for media
@@ -151,18 +246,44 @@ class Prism_SendToClient_Functions(object):
 
     @err_catcher(name=__name__)
     def open_explorer(self, path):
+        """
+        Open the given path in the windows file explorer.
+
+        Args :
+            path (str) : Path.
+        
+        Returns :
+            None
+        """
         path = path.replace('/', '\\')
         cmd = 'explorer ' + path
         subprocess.Popen(cmd)
 
     @err_catcher(name=__name__)
-    def get_toClient_folder(self, data):
+    def get_export_folder(self, data):
+        """
+        Retrieve path to the export folder.
+
+        Args:
+            data (dict) : export informations.
+
+        Returns:
+            str : folder path
+        """
+
         project_path = data['project_path']
 
         return f"{project_path}/08_ToClient".replace('\\', '/')
 
     @err_catcher(name=__name__)
     def get_toClient_media_folder(self):
+        """
+        Create a default folder name using the current date.
+
+        Returns:
+            str: A string formatted as YYMMDD_ to use as a folder name.
+        """
+
         date = datetime.datetime.now()
         date = date.strftime('%y%m%d')
         toClient_media_folder = date + '_'
@@ -170,6 +291,18 @@ class Prism_SendToClient_Functions(object):
 
     @err_catcher(name=__name__)
     def copy_files(self, src, dst):
+        """
+        Copy a file or directory from a source path to a destination path.
+
+        Args:
+        src (str): Path to the source file or directory.
+        dst (str): Path to the destination directory.
+
+        Returns:
+            str or None: Path to the copied file (if source is a file),
+                        or destination directory path (if directory copied),
+                        or None if nothing is done.
+        """
 
         src = src.replace('/', '\\')
         dst = dst.replace('/', '\\')
@@ -208,6 +341,16 @@ class Prism_SendToClient_Functions(object):
 
     @err_catcher(name=__name__)  
     def rename_files(self, src, name):
+        """
+        Rename a file or directory to the given name, preserving its extension (if file) or path (if folder).
+
+        Args:
+            src (str): Path to the file or directory to rename.
+            name (str): New name to apply (without extension if a file).
+
+        Returns:
+            None
+        """
         if os.path.isfile(src):
             ext = os.path.splitext(src)[1]
             new_name = f"{os.path.dirname(src)}/{name}{ext}"
@@ -224,6 +367,16 @@ class Prism_SendToClient_Functions(object):
 
     @err_catcher(name=__name__)
     def get_existing_folders(self, search_dir):
+        """
+        Return a reversed list of all subdirectory names within a given directory.
+
+        Args:
+            search_dir (str): Path to the directory to search for subfolders.
+
+        Returns:
+            list[str]: List of subdirectory names found in `search_dir`, reversed in order.
+        """
+            
         existing_folders = []
         for dir in os.listdir(search_dir):
             if os.path.isdir(os.path.join(search_dir, dir)):
@@ -232,52 +385,85 @@ class Prism_SendToClient_Functions(object):
     
     @err_catcher(name=__name__)
     def quick_copyToClient(self, data):
+        """
+        Copy a media file or folder to the "toClient" directory and rename it with default settings.
+
+        Args:
+            data (dict): Dictionary containing media information.
+                Expected keys:
+                    - 'filename' (str): Full path to the media file, or
+                    - 'path' (str): Alternative path key for the media.
+
+        Returns:
+            None
+        """
+
         media_folder = ""
         if "filename" in data.keys():
             media_folder = data.get('filename')
         elif "path" in data.keys():
             media_folder = data.get('path')
+        else:
+            self.core.popup("Can't retrieve export path",
+                            severity="error")
         
-        placeholder_media_name = self.format_toClient_media_name(data)
-        toClient_folder = self.get_toClient_folder(data)
+        placeholder_export_name = self.get_placeholder_export_name(data)
+        export_folder = self.get_export_folder(data)
         placeholder_media_folder = self.get_toClient_media_folder()
 
         # RETRIEVE AND FORMAT USER INPUT
-        toClient_media_folder = placeholder_media_name
+        toClient_media_folder = placeholder_export_name
         toClient_media_folder = re.sub(
             r"[^a-zA-Z0-9]", "_", toClient_media_folder
             )
         toClient_media_path = os.path.join(
-            toClient_folder, placeholder_media_folder
+            export_folder, placeholder_media_folder
             )
         toClient_media_name = placeholder_media_folder
         toClient_media_name = re.sub(r"[^a-zA-Z0-9]", "_", toClient_media_name)
 
         copied = self.copy_files(media_folder, toClient_media_path)
 
-        self.rename_files(copied, placeholder_media_name)
+        self.rename_files(copied, placeholder_export_name)
 
     @err_catcher(name=__name__)
     def copyToClient(self, data):
-        media_folder = ""
+        """
+        Copy a media file or folder to the "toClient" directory and rename it.
+        Ask the user about settings.
+
+        Args:
+            data (dict): Dictionary containing media information.
+                Expected keys:
+                    - 'filename' (str): Full path to the media file, or
+                    - 'path' (str): Alternative path key for the media.
+
+        Returns:
+            None
+        """
+
+        export_path = ""
         if "filename" in data.keys():
-            media_folder = data.get('filename')
+            export_path = data.get('filename')
         elif "path" in data.keys():
-            media_folder = data.get('path')
+            export_path = data.get('path')
+        else:
+            self.core.popup("Can't retrieve export path",
+                            severity="error")
 
-        placeholder_media_name = self.format_toClient_media_name(data)
+        placeholder_export_name = self.get_placeholder_export_name(data)
 
-        toClient_folder = self.get_toClient_folder(data)
+        export_folder = self.get_export_folder(data)
 
         # GET MEDIA NAME FROM USER INPUT
         dlg = SetName()
-        dlg.e_mediaName.setText(placeholder_media_name)
-        existing_folders = self.get_existing_folders(toClient_folder)
+        dlg.e_mediaName.setText(placeholder_export_name)
+        existing_folders = self.get_existing_folders(export_folder)
         placeholder_media_folder = self.get_toClient_media_folder()
         existing_folders.insert(0, placeholder_media_folder)
         dlg.c_mediaFolders.addItems(existing_folders)
         dlg.b_explorer.clicked.connect(
-            lambda: self.open_explorer(toClient_folder)
+            lambda: self.open_explorer(export_folder)
             )
         result = dlg.exec_()
         if result == 0:
@@ -289,18 +475,28 @@ class Prism_SendToClient_Functions(object):
             r"[^a-zA-Z0-9]", "_", toClient_media_folder
             )
         toClient_media_path = os.path.join(
-            toClient_folder, toClient_media_folder
+            export_folder, toClient_media_folder
             )
         toClient_media_name = dlg.e_mediaName.text()
         toClient_media_name = re.sub(r"[^a-zA-Z0-9]", "_", toClient_media_name)
 
-        copied = self.copy_files(media_folder, toClient_media_path)
+        copied = self.copy_files(export_path, toClient_media_path)
 
         self.rename_files(copied, toClient_media_name)
 
     def merge_folders(self, src, dst):
+        """
+        Recursively merge contents of the source directory into the destination directory.
+
+        Args:
+            src (str): Path to the source directory.
+            dst (str): Path to the destination directory.
+
+        Returns:
+            None
+        """
         if not os.path.isdir(src):
-            raise ValueError(f"{src} n'est pas un dossier valide.")
+            raise ValueError(f"{src} is not a correct directory.")
         if not os.path.isdir(dst):
             os.makedirs(dst)
 
@@ -309,6 +505,6 @@ class Prism_SendToClient_Functions(object):
             dst_path = os.path.join(dst, item)
 
             if os.path.isdir(src_path):
-                self.merge_folders(src_path, dst_path)  # Recursion pour les sous-dossiers
+                self.merge_folders(src_path, dst_path) 
             else:
-                shutil.copy2(src_path, dst_path)  # Remplace ou copie les fichiers
+                shutil.copy2(src_path, dst_path)  # replace or copy file
