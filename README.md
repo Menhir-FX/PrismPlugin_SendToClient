@@ -2,13 +2,27 @@
 ## DESCRIPTION
   This plugin was developped to work with the Prism Pipeline at MenhirFX.
   
-  This plugin adds a new option when right clicking a media in the Prism Project Browser that allows the user to copy the selected media into a new or existing folder, and rename the files with a custom name.
+  forked from EFV0804/PrismPlugin_SendToClient
   
-  ![send_to_client_rightclick](https://user-images.githubusercontent.com/72398192/186416056-aceaa940-acd3-4bf0-98e3-b686fffedb43.PNG)
+  This plugin adds a new option when right clicking a scenefile/media/product in the Prism Project Browser. It allows the user to copy the selected media into a new or existing folder, and rename the files with a custom name.
+  
+  ![menu_contextuel](https://github.com/user-attachments/assets/2519e5c6-fd81-46f7-9259-d42fc672df01)
 
-  ![send_to_client_dialog1](https://user-images.githubusercontent.com/72398192/186416110-4e44a4f1-7bba-403e-affa-4733fad56c4b.PNG)
+  The new option offers 2 actions: 
+  - The basic send action, which opens a dialog window. The user can set the media name and the export folder name.
+  ![dialog](https://github.com/user-attachments/assets/d10cbd8a-0241-4c78-9d5d-ff0b8ba7a410)
 
-  ![send_to_client_dialog_drop_down](https://user-images.githubusercontent.com/72398192/186416131-647233d6-72ac-4aeb-a31e-88b20bcd106a.PNG)
+
+  - And the quick send action, which copies the media with the default setting.
+
+## CONFIG
+In the Config class, in env.py you can change the value of some parameters:
+- MENU_NAME : The option name in the contextual menu.
+- ACTION_NAME : The name of the send action.
+- QUICK_ACTION_NAME : The name of the quick send action.
+- EXPORT_FOLDER : The export folder name, at the project root.
+- get_placeholder_export_name(data) : The method that creates a default name for the media being copied.
+- get_default_destination_folder_name():  The method that creates a default name for the destination folder (inside the export folder).
 
 
 ## INSTALL
@@ -16,4 +30,6 @@
   
 
 ## Credits
-- [MenhirFX](www.menhirfx.com)
+- [MenhirFX](https://www.menhirfx.com)
+- [Elise Vidal](https://github.com/EFV0804)
+- [Angele Sionneau](https://github.com/Enjaileu)
