@@ -108,7 +108,7 @@ class Ui_setMediaNameDlg(object):
     def retranslateUi(self, setMediaNameDlg):
         setMediaNameDlg.setWindowTitle(QCoreApplication.translate("setMediaNameDlg", u"Dialog", None))
         self.l_mediaName.setText(QCoreApplication.translate("setMediaNameDlg", u"Media Name", None))
-        self.l_mediaFolder.setText(QCoreApplication.translate("setMediaNameDlg", u"Media Folder", None))
+        self.l_mediaFolder.setText(QCoreApplication.translate("setMediaNameDlg", u"Export Folder", None))
         self.b_explorer.setText(QCoreApplication.translate("setMediaNameDlg", u"Open in Explorer", None))
     # retranslateUi
 

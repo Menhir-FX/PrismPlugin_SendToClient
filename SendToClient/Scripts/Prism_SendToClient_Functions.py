@@ -29,9 +29,12 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Prism.  If not, see <https://www.gnu.org/licenses/>.
+
 ####################################################
-# Plugin author: Elise Vidal
+# Initial plugin author: Elise Vidal
 # Contact: evidal@artfx.fr
+# Plugin author: Angele Sionneau
+# Contact: angele.sionneau@gmail.com
 
 
 
