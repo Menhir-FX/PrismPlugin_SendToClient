@@ -1,4 +1,8 @@
 # PRISM PLUGIN - SendToClient
+<div>
+<img src="https://img.shields.io/badge/Prism_Pipeline-2.0.15-mediumseagreen" alt="Prism Pipeline Version">
+</div>  
+<br>
 ## DESCRIPTION
   This plugin was developped to work with the Prism Pipeline at MenhirFX.
   
@@ -27,9 +31,4 @@ In the Config class, in env.py you can change the value of some parameters:
 
 ## INSTALL
   To install this plugin copy the folder 'SendToClient' into a Prism plugin location.
-  
 
-## Credits
-- [MenhirFX](https://www.menhirfx.com)
-- [Elise Vidal](https://github.com/EFV0804)
-- [Angele Sionneau](https://github.com/Enjaileu)
